@@ -109,6 +109,16 @@
     </div>
 
     <script>
+        function getVal(id) {
+            return parseInt(document.getElementById(id).value) || 0;
+        }
+
+        function clearAll() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            document.getElementById('result_section').classList.add('hidden');
+        }
+
         function calculateCash() {
             // 1. 计算所有硬币的总额 (Rolls + Loose)
             const totalCoins = 
@@ -129,7 +139,7 @@
                 return;
             }
 
-            // 直接计算【整钱部分】超出了 300 刀多少钱
+            // 新战术核心：直接计算【整钱部分】超出了 300 刀多少钱
             let targetDeposit = Math.floor(grandTotal - 300);
             if (targetDeposit < 0) targetDeposit = 0; 
 
