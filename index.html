@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>收银结账助手</title>
+    <!-- 引入 Tailwind CSS 快速美化界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 pb-12 font-sans select-none text-gray-800">
+
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6">
+        <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">💰 收银尾盘清点助手</h1>
+        
+        <!-- 1. 整卷硬币 -->
+        <div class="mb-6">
+            <h2 class="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wider">📦 整卷硬币 (Rolls)</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Quarters ($10/卷)</label>
+                    <input type="number" id="roll_25" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Dimes ($5/卷)</label>
+                    <input type="number" id="roll_10" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Nickels ($2/卷)</label>
+                    <input type="number" id="roll_5" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Pennies ($0.5/卷)</label>
+                    <input type="number" id="roll_1" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 散装硬币 -->
+        <div class="mb-6">
+            <h2 class="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wider">🪙 散装硬币 (Loose)</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Quarters (25¢)</label>
+                    <input type="number" id="coin_25" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Dimes (10¢)</label>
+                    <input type="number" id="coin_10" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Nickels (5¢)</label>
+                    <input type="number" id="coin_5" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Pennies (1¢)</label>
+                    <input type="number" id="coin_1" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 纸钞 -->
+        <div class="mb-6">
+            <h2 class="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wider">💵 纸钞数量 (Bills)</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">$20 刀</label>
+                    <input type="number" id="bill_20" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">$10 刀</label>
+                    <input type="number" id="bill_10" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">$5 刀</label>
+                    <input type="number" id="bill_5" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">$1 刀</label>
+                    <input type="number" id="bill_1" min="0" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-center" placeholder="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- 按钮控制 -->
+        <div class="flex gap-3 mb-6">
+            <button onclick="clearAll()" class="w-1/3 bg-gray-200 text-gray-700 font-semibold p-3 rounded-xl active:bg-gray-300 transition">清空</button>
+            <button onclick="calculateCash()" class="w-2/3 bg-indigo-600 text-white font-bold p-3 rounded-xl active:bg-indigo-700 shadow-md transition">一键计算</button>
+        </div>
+
+        <!-- 结果展示 -->
+        <div id="result_section" class="hidden border-t border-gray-200 pt-4">
+            <div class="bg-gray-50 rounded-xl p-4 mb-4">
+                <p class="text-sm text-gray-500">当前钱箱总额</p>
+                <p class="text-3xl font-black text-gray-900" id="total_cash">$0.00</p>
+            </div>
+
+            <div class="bg-green-50 rounded-xl p-4 mb-4 border border-green-200">
+                <p class="text-sm text-green-700 font-semibold">🏦 填写表格并存银行的金额 (Deposit)</p>
+                <p class="text-2xl font-bold text-green-600" id="deposit_amount">$0.00</p>
+                <div class="text-xs text-green-800 mt-2 space-y-1" id="deposit_breakdown"></div>
+            </div>
+
+            <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <p class="text-sm text-blue-700 font-semibold">📥 留在柜台里的金额 (Keep in Drawer)</p>
+                <p class="text-2xl font-bold text-blue-600" id="drawer_amount">$0.00</p>
+                <p class="text-xs text-gray-500 mt-1">※ 策略：硬币全留，优先留小额纸钞做明天的零钱。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getVal(id) {
+            return parseInt(document.getElementById(id).value) || 0;
+        }
+
+        function clearAll() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            document.getElementById('result_section').classList.add('hidden');
+        }
+
+        function calculateCash() {
+            // 标准美国硬币/纸币面值配置
+            const totalCoins = 
+                getVal('roll_25') * 10.00 + getVal('roll_10') * 5.00 + getVal('roll_5') * 2.00 + getVal('roll_1') * 0.50 +
+                getVal('coin_25') * 0.25 + getVal('coin_10') * 0.10 + getVal('coin_5') * 0.05 + getVal('coin_1') * 0.01;
+
+            const b20 = getVal('bill_20');
+            const b10 = getVal('bill_10');
+            const b5 = getVal('bill_5');
+            const b1 = getVal('bill_1');
+
+            const totalBills = b20 * 20 + b10 * 10 + b5 * 5 + b1 * 1;
+            const grandTotal = totalCoins + totalBills;
+
+            if (grandTotal < 298) {
+                alert("老兄，总共才 $" + grandTotal.toFixed(2) + "，不够 300 刀，检查一下是不是数错了？");
+                return;
+            }
+
+            // 业务逻辑：硬币全部保留在抽屉里
+            let remainingToKeep = 300 - totalCoins;
+            
+            // 如果硬币本身就超过了300刀（虽然罕见），那只能把多出来的硬币也存了
+            if (remainingToKeep < 0) remainingToKeep = 0;
+
+            // 贪心算法：为了方便明天收银，优先保留小面额纸币 ($1, $5)，把大面额纸币 ($20, $10) 抽去存银行
+            let keep1 = Math.min(b1, Math.floor(remainingToKeep / 1));
+            remainingToKeep -= keep1 * 1;
+
+            let keep5 = Math.min(b5, Math.floor(remainingToKeep / 5));
+            remainingToKeep -= keep5 * 5;
+
+            let keep10 = Math.min(b10, Math.floor(remainingToKeep / 10));
+            remainingToKeep -= keep10 * 10;
+
+            let keep20 = Math.min(b20, Math.floor(remainingToKeep / 20));
+            remainingToKeep -= keep20 * 20;
+
+            // 应上交银行的纸币数量
+            const drop20 = b20 - keep20;
+            const drop10 = b10 - keep10;
+            const drop5 = b5 - keep5;
+            const drop1 = b1 - keep1;
+
+            // 计算实际留在抽屉的钱（允许 1-2 刀的误差误差）
+            const actualDrawer = totalCoins + (keep20 * 20 + keep10 * 10 + keep5 * 5 + keep1 * 1);
+            const actualDeposit = grandTotal - actualDrawer;
+
+            // UI 渲染
+            document.getElementById('total_cash').innerText = "$" + grandTotal.toFixed(2);
+            document.getElementById('deposit_amount').innerText = "$" + actualDeposit.toFixed(2);
+            document.getElementById('drawer_amount').innerText = "$" + actualDrawer.toFixed(2);
+
+            // 生成存款单清单
+            let breakdownHtml = "<p class='font-bold text-gray-700 mb-1'>从钱箱拿出以下纸钞放入存款袋：</p>";
+            if (drop20 > 0) breakdownHtml += `• $20 刀 x ${drop20} 张<br>`;
+            if (drop10 > 0) breakdownHtml += `• $10 刀 x ${drop10} 张<br>`;
+            if (drop5 > 0)  breakdownHtml += `• $5 刀 x ${drop5} 张<br>`;
+            if (drop1 > 0)  breakdownHtml += `• $1 刀 x ${drop1} 张<br>`;
+            if (actualDeposit % 1 !== 0) {
+                breakdownHtml += `• 散装零钱硬币：$${(actualDeposit % 1).toFixed(2)}<br>`;
+            }
+            
+            document.getElementById('deposit_breakdown').innerHTML = breakdownHtml;
+            document.getElementById('result_section').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
