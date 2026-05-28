@@ -109,18 +109,8 @@
     </div>
 
     <script>
-        function getVal(id) {
-            return parseInt(document.getElementById(id).value) || 0;
-        }
-
-        function clearAll() {
-            const inputs = document.querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
-            document.getElementById('result_section').classList.add('hidden');
-        }
-
         function calculateCash() {
-            // 标准美国硬币/纸币面值配置
+            // 1. 计算所有硬币的总额 (Rolls + Loose)
             const totalCoins = 
                 getVal('roll_25') * 10.00 + getVal('roll_10') * 5.00 + getVal('roll_5') * 2.00 + getVal('roll_1') * 0.50 +
                 getVal('coin_25') * 0.25 + getVal('coin_10') * 0.10 + getVal('coin_5') * 0.05 + getVal('coin_1') * 0.01;
@@ -133,53 +123,49 @@
             const totalBills = b20 * 20 + b10 * 10 + b5 * 5 + b1 * 1;
             const grandTotal = totalCoins + totalBills;
 
+            // 防线：如果总数本来就不够底钱
             if (grandTotal < 298) {
-                alert("老兄，总共才 $" + grandTotal.toFixed(2) + "，不够 300 刀，检查一下是不是数错了？");
+                alert("老兄，总共才 $" + grandTotal.toFixed(2) + "，不够 300 刀底钱，检查一下是不是数错了？");
                 return;
             }
 
-            // 业务逻辑：硬币全部保留在抽屉里
-            let remainingToKeep = 300 - totalCoins;
-            
-            // 如果硬币本身就超过了300刀（虽然罕见），那只能把多出来的硬币也存了
-            if (remainingToKeep < 0) remainingToKeep = 0;
+            // 直接计算【整钱部分】超出了 300 刀多少钱
+            let targetDeposit = Math.floor(grandTotal - 300);
+            if (targetDeposit < 0) targetDeposit = 0; 
 
-            // 贪心算法：为了方便明天收银，优先保留小面额纸币 ($1, $5)，把大面额纸币 ($20, $10) 抽去存银行
-            let keep1 = Math.min(b1, Math.floor(remainingToKeep / 1));
-            remainingToKeep -= keep1 * 1;
+            // 贪心算法：从大面额开始，精准计算需要【拿出存银行】的纸币数量
+            let drop20 = Math.min(b20, Math.floor(targetDeposit / 20));
+            targetDeposit -= drop20 * 20;
 
-            let keep5 = Math.min(b5, Math.floor(remainingToKeep / 5));
-            remainingToKeep -= keep5 * 5;
+            let drop10 = Math.min(b10, Math.floor(targetDeposit / 10));
+            targetDeposit -= drop10 * 10;
 
-            let keep10 = Math.min(b10, Math.floor(remainingToKeep / 10));
-            remainingToKeep -= keep10 * 10;
+            let drop5 = Math.min(b5, Math.floor(targetDeposit / 5));
+            targetDeposit -= drop5 * 5;
 
-            let keep20 = Math.min(b20, Math.floor(remainingToKeep / 20));
-            remainingToKeep -= keep20 * 20;
+            let drop1 = Math.min(b1, Math.floor(targetDeposit / 1));
+            targetDeposit -= drop1 * 1;
 
-            // 应上交银行的纸币数量
-            const drop20 = b20 - keep20;
-            const drop10 = b10 - keep10;
-            const drop5 = b5 - keep5;
-            const drop1 = b1 - keep1;
+            // 计算实际的财务结果
+            const actualDeposit = (drop20 * 20 + drop10 * 10 + drop5 * 5 + drop1 * 1);
+            const actualDrawer = grandTotal - actualDeposit;
 
-            // 计算实际留在抽屉的钱（允许 1-2 刀的误差误差）
-            const actualDrawer = totalCoins + (keep20 * 20 + keep10 * 10 + keep5 * 5 + keep1 * 1);
-            const actualDeposit = grandTotal - actualDrawer;
-
-            // UI 渲染
+            // UI 渲染更新
             document.getElementById('total_cash').innerText = "$" + grandTotal.toFixed(2);
             document.getElementById('deposit_amount').innerText = "$" + actualDeposit.toFixed(2);
             document.getElementById('drawer_amount').innerText = "$" + actualDrawer.toFixed(2);
 
-            // 生成存款单清单
+            // 动态生成存款清单
             let breakdownHtml = "<p class='font-bold text-gray-700 mb-1'>从钱箱拿出以下纸钞放入存款袋：</p>";
-            if (drop20 > 0) breakdownHtml += `• $20 刀 x ${drop20} 张<br>`;
-            if (drop10 > 0) breakdownHtml += `• $10 刀 x ${drop10} 张<br>`;
-            if (drop5 > 0)  breakdownHtml += `• $5 刀 x ${drop5} 张<br>`;
-            if (drop1 > 0)  breakdownHtml += `• $1 刀 x ${drop1} 张<br>`;
-            if (actualDeposit % 1 !== 0) {
-                breakdownHtml += `• 散装零钱硬币：$${(actualDeposit % 1).toFixed(2)}<br>`;
+            let hasDeposit = false;
+            
+            if (drop20 > 0) { breakdownHtml += `• $20 刀 x ${drop20} 张<br>`; hasDeposit = true; }
+            if (drop10 > 0) { breakdownHtml += `• $10 刀 x ${drop10} 张<br>`; hasDeposit = true; }
+            if (drop5 > 0)  { breakdownHtml += `• $5 刀 x ${drop5} 张<br>`; hasDeposit = true; }
+            if (drop1 > 0)  { breakdownHtml += `• $1 刀 x ${drop1} 张<br>`; hasDeposit = true; }
+            
+            if (!hasDeposit) {
+                breakdownHtml += `• 当前总额接近 $300，暂不需要拿出纸币。<br>`;
             }
             
             document.getElementById('deposit_breakdown').innerHTML = breakdownHtml;
