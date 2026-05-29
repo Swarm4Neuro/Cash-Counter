@@ -120,7 +120,7 @@
         }
 
         function calculateCash() {
-            // 1. 计算所有硬币的总额 (Rolls + Loose)
+            // 1. 清点当前所有硬币和纸币
             const totalCoins = 
                 getVal('roll_25') * 10.00 + getVal('roll_10') * 5.00 + getVal('roll_5') * 2.00 + getVal('roll_1') * 0.50 +
                 getVal('coin_25') * 0.25 + getVal('coin_10') * 0.10 + getVal('coin_5') * 0.05 + getVal('coin_1') * 0.01;
@@ -133,39 +133,92 @@
             const totalBills = b20 * 20 + b10 * 10 + b5 * 5 + b1 * 1;
             const grandTotal = totalCoins + totalBills;
 
-            // 防线：如果总数本来就不够底钱
             if (grandTotal < 298) {
                 alert("老兄，总共才 $" + grandTotal.toFixed(2) + "，不够 300 刀底钱，检查一下是不是数错了？");
                 return;
             }
 
-            // 新战术核心：直接计算【整钱部分】超出了 300 刀多少钱
-            let targetDeposit = Math.floor(grandTotal - 300);
-            if (targetDeposit < 0) targetDeposit = 0; 
+            // 2. 性能防线：计算我们最多可能需要拿出多少整钱（防止输入极大数字时导致手机浏览器卡死）
+            let maxNeedToDrop = Math.ceil(grandTotal - 295);
+            if (maxNeedToDrop < 0) maxNeedToDrop = 0;
 
-            // 贪心算法：从大面额开始，精准计算需要【拿出存银行】的纸币数量
-            let drop20 = Math.min(b20, Math.floor(targetDeposit / 20));
-            targetDeposit -= drop20 * 20;
+            // 限制穷举循环的上限，既满足业务，又保护算力
+            let max_d20 = Math.min(b20, Math.ceil(maxNeedToDrop / 20));
+            let max_d10 = Math.min(b10, Math.ceil(maxNeedToDrop / 10));
+            let max_d5  = Math.min(b5,  Math.ceil(maxNeedToDrop / 5));
+            let max_d1  = Math.min(b1,  Math.ceil(maxNeedToDrop / 1));
 
-            let drop10 = Math.min(b10, Math.floor(targetDeposit / 10));
-            targetDeposit -= drop10 * 10;
+            // 3. 设定各类纸币的安全留存水位（Reserve Targets）
+            const r20 = 4;  // 20刀至少留4张破大钞
+            const r10 = 4;  // 10刀至少留4张
+            const r1  = 40; // 1元尽量留40张
+            const r5  = Math.max(10, Math.floor(b1 / 2)); // 5元留存底线：1元纸币的一半，且不低于10张
 
-            let drop5 = Math.min(b5, Math.floor(targetDeposit / 5));
-            targetDeposit -= drop5 * 5;
+            let bestDrop = { d20: 0, d10: 0, d5: 0, d1: 0 };
+            let bestScore = -Infinity;
 
-            let drop1 = Math.min(b1, Math.floor(targetDeposit / 1));
-            targetDeposit -= drop1 * 1;
+            // 4. 矩阵穷举：扫描所有合法的拿钱组合，进行生存积分赛
+            for (let d20 = 0; d20 <= max_d20; d20++) {
+                for (let d10 = 0; d10 <= max_d10; d10++) {
+                    for (let d5 = 0; d5 <= max_d5; d5++) {
+                        for (let d1 = 0; d1 <= max_d1; d1++) {
+                            
+                            let deposit = d20 * 20 + d10 * 10 + d5 * 5 + d1 * 1;
+                            let drawer = grandTotal - deposit;
+                            let drawerInt = Math.floor(drawer); // 经理只看整数部分
 
-            // 计算实际的财务结果
+                            let score = 0;
+
+                            // 【核心法则一】：钱箱留存必须在 298 - 302 之间（硬性指标）
+                            if (drawerInt >= 298 && drawerInt <= 302) {
+                                score += 100000; // 满足大前提，狂加10万分
+                                score += (5 - Math.abs(drawerInt - 300)) * 100; // 越接近300分越高
+                            } else {
+                                score -= Math.abs(drawerInt - 300) * 10000; // 越界直接扣成负分
+                            }
+
+                            // 计算拿完钱后，钱箱里各类纸币还剩多少张
+                            let kept20 = b20 - d20;
+                            let kept10 = b10 - d10;
+                            let kept5  = b5 - d5;
+                            let kept1  = b1 - d1;
+
+                            // 【核心法则二】：留存保护惩罚（阶梯式扣分，谁重要谁分高）
+                            if (kept20 < r20) score -= (r20 - kept20) * 3000; // 动了20刀的防御线，重罚
+                            if (kept10 < r10) score -= (r10 - kept10) * 3000; // 动了10刀的防御线，重罚
+                            if (kept1 < r1)   score -= (r1 - kept1) * 1500;   // 动了1刀的零钱，中罚
+                            if (kept5 < r5)   score -= (r5 - kept5) * 100;    // 动了5刀，轻罚（意味着5刀最优先被牺牲）
+                            
+                            // 【法则三（最新加入）】：银行存款组合限制！
+                            // 如果存款袋里拿了5张及以上的1刀，且此时抽屉里明明还有5刀纸币能用来替代
+                            // 这属于低效存款（银行不收），直接予以重罚，逼迫算法执行“5张1刀换1张5刀”
+                            if (d1 >= 5 && kept5 > 0) {
+                                score -= Math.floor(d1 / 5) * 50000; 
+                            }
+                            // 如果得分超越历史最佳，记录当前排兵布阵
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestDrop = { d20, d10, d5, d1 };
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5. 提取最优解
+            let drop20 = bestDrop.d20;
+            let drop10 = bestDrop.d10;
+            let drop5  = bestDrop.d5;
+            let drop1  = bestDrop.d1;
+
             const actualDeposit = (drop20 * 20 + drop10 * 10 + drop5 * 5 + drop1 * 1);
             const actualDrawer = grandTotal - actualDeposit;
 
-            // UI 渲染更新
+            // 6. 渲染 UI 结果
             document.getElementById('total_cash').innerText = "$" + grandTotal.toFixed(2);
             document.getElementById('deposit_amount').innerText = "$" + actualDeposit.toFixed(2);
             document.getElementById('drawer_amount').innerText = "$" + actualDrawer.toFixed(2);
 
-            // 动态生成存款清单
             let breakdownHtml = "<p class='font-bold text-gray-700 mb-1'>从钱箱拿出以下纸钞放入存款袋：</p>";
             let hasDeposit = false;
             
@@ -175,7 +228,7 @@
             if (drop1 > 0)  { breakdownHtml += `• $1 刀 x ${drop1} 张<br>`; hasDeposit = true; }
             
             if (!hasDeposit) {
-                breakdownHtml += `• 当前总额接近 $300，暂不需要拿出纸币。<br>`;
+                breakdownHtml += `• 当前总额非常接近 $300 且零钱结构完美，暂不需要拿出纸币。<br>`;
             }
             
             document.getElementById('deposit_breakdown').innerHTML = breakdownHtml;
