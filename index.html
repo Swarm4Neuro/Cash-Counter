@@ -219,13 +219,14 @@
             document.getElementById('deposit_amount').innerText = "$" + actualDeposit.toFixed(2);
             document.getElementById('drawer_amount').innerText = "$" + actualDrawer.toFixed(2);
 
-            let breakdownHtml = "<p class='font-bold text-gray-700 mb-1'>从钱箱拿出以下纸钞放入存款袋：</p>";
+            // 【功能新增】：在输出具体拿取张数时，动态计算并打印出抽屉内剩余（余数 = 输入总数 - 拿出数）
+            let breakdownHtml = "<p class='font-bold text-gray-700 mb-2'>从钱箱拿出以下纸钞放入存款袋：</p>";
             let hasDeposit = false;
             
-            if (drop20 > 0) { breakdownHtml += `• $20 刀 x ${drop20} 张<br>`; hasDeposit = true; }
-            if (drop10 > 0) { breakdownHtml += `• $10 刀 x ${drop10} 张<br>`; hasDeposit = true; }
-            if (drop5 > 0)  { breakdownHtml += `• $5 刀 x ${drop5} 张<br>`; hasDeposit = true; }
-            if (drop1 > 0)  { breakdownHtml += `• $1 刀 x ${drop1} 张<br>`; hasDeposit = true; }
+            if (drop20 > 0) { breakdownHtml += `• $20 刀 x <span class='font-bold text-indigo-600'>${drop20}</span> 张 <span class='text-gray-500 text-sm'>(抽屉余 ${b20 - drop20} 张)</span><br>`; hasDeposit = true; }
+            if (drop10 > 0) { breakdownHtml += `• $10 刀 x <span class='font-bold text-indigo-600'>${drop10}</span> 张 <span class='text-gray-500 text-sm'>(抽屉余 ${b10 - drop10} 张)</span><br>`; hasDeposit = true; }
+            if (drop5 > 0)  { breakdownHtml += `• $5 刀 x <span class='font-bold text-indigo-600'>${drop5}</span> 张  <span class='text-gray-500 text-sm'>(抽屉余 ${b5 - drop5} 张)</span><br>`; hasDeposit = true; }
+            if (drop1 > 0)  { breakdownHtml += `• $1 刀 x <span class='font-bold text-indigo-600'>${drop1}</span> 张  <span class='text-gray-500 text-sm'>(抽屉余 ${b1 - drop1} 张)</span><br>`; hasDeposit = true; }
             
             if (!hasDeposit) {
                 breakdownHtml += `• 当前总额非常接近 $300 且零钱结构完美，暂不需要拿出纸币。<br>`;
